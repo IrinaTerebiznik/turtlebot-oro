@@ -18,9 +18,13 @@ services:
       - /dev/dri:/dev/dri
     network_mode: host
     ipc: host
-    command: ["ros2", "launch", "/turtlebot-oro/launch/demo.launch.py"]
+    # GAZEBO=true (start.sh -g) runs the Gazebo robot instead of the fake one
+    # MAP=true (start.sh -map) serves the Monopoly map
+    # SLAM=true (start.sh -slam) builds the map live
+    command: ["ros2", "launch", "/turtlebot-oro/launch/demo.launch.py",
+              "gazebo:=${GAZEBO:-false}", "map:=${MAP:-false}", "slam:=${SLAM:-false}"]
 
-  # ROS2 InOrbit agent. Needs local/agent.env.sh (copy local/agent.env.sh.example).
+  # ROS2 InOrbit agent. Needs agent/agent.env.sh (copy agent/agent.env.sh.example).
   # start.sh enables the "agent" profile only when that file exists.
   agent:
     image: inorbitai/agent:ros-jazzy-4.36.0
@@ -32,9 +36,11 @@ services:
     ipc: host
     environment:
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+      # Gazebo stamps TF with its own clock: the agent must follow it, or poses never resolve
+      - USE_SIM_TIME=${GAZEBO:-false}
     volumes:
       - ./local:/root/.inorbit/local/
-      - ./local/agent.env.sh:/root/.inorbit/local/agent.env.sh
+      - ./agent/agent.env.sh:/root/.inorbit/local/agent.env.sh
 
   # Tail agent logs from a separate container: docker compose logs -f agent-logs
   agent-logs:

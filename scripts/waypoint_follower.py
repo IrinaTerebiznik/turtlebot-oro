@@ -7,7 +7,7 @@ import math
 
 import rclpy
 import tf2_geometry_msgs  # noqa: F401  registers PoseStamped with tf2
-from geometry_msgs.msg import PoseStamped, Twist
+from geometry_msgs.msg import PoseStamped, Twist, TwistStamped
 from nav_msgs.msg import Odometry
 from rclpy.duration import Duration
 from rclpy.node import Node
@@ -40,7 +40,10 @@ class WaypointFollower(Node):
         self.pose = None
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
-        self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+        # Gazebo's bridge takes TwistStamped on /cmd_vel, the fake node takes Twist.
+        self.stamped = self.declare_parameter('stamped', False).value
+        self.cmd_pub = self.create_publisher(
+            TwistStamped if self.stamped else Twist, '/cmd_vel', 10)
         self.create_subscription(PoseStamped, '/goal_pose', self.on_goal, 10)
         self.create_subscription(Odometry, '/odom', self.on_odom, 10)
         self.create_timer(0.05, self.step)
@@ -82,6 +85,10 @@ class WaypointFollower(Node):
                 self.goal = None
                 self.get_logger().info('Goal reached')
 
+        if self.stamped:
+            stamped = TwistStamped(twist=cmd)
+            stamped.header.stamp = self.get_clock().now().to_msg()
+            cmd = stamped
         self.cmd_pub.publish(cmd)
 
 

@@ -1,0 +1,61 @@
+# Agent settings for the TurtleBot3: which ROS topics the InOrbit agent uses.
+# ORO applies ModuleStates to every robot: apply this only on an ORO that runs TurtleBots.
+#   oro apply -f agent/cac/ModuleStates.yaml
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosMapAgentlet
+spec:
+  state:
+    minRunlevel: 5
+---
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosPoseAgentlet
+spec:
+  state:
+    minRunlevel: 5
+---
+# Map, laser, goals and initial pose. No costmap or plan: there's no Nav2.
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosLocalizationAgentlet
+spec:
+  state:
+    minRunlevel: 5
+    map_topic: "map"
+    laser_topic: "scan"
+    nav_goal_topic: "goal_pose"
+    set_pose_topic: "initialpose"
+---
+# ORO teleop. The agent picks Twist or TwistStamped from what's already on the topic.
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosTeleopAgentlet
+spec:
+  state:
+    publish_zero_vel: true
+    cmd_vel_topic: "cmd_vel"
+---
+# Forwards /diagnostics_agg to ORO (Diagnostics widget)
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosDiagnosticsAgentlet
+spec:
+  state:
+    minRunlevel: 5
+---
+# The Burger has no camera
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosImageAgentlet
+spec:
+  state:
+    cameraViewOn: false
+    camera_topics: {}
+    cameras_config: {}

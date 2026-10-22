@@ -1,3 +1,6 @@
-# Local runtime state (agent config with key, logs, credentials)
+# Agent config with the robot key
+agent/agent.env.sh
+# Local runtime state (agent logs)
 local/*
-!local/agent.env.sh.example
+# Python bytecode
+__pycache__/

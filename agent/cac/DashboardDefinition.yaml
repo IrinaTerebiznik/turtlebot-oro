@@ -1,0 +1,70 @@
+# TurtleBot3 dashboards in ORO.
+#   oro apply -f agent/cac/DashboardDefinition.yaml
+apiVersion: v0.1
+kind: DashboardDefinition
+metadata:
+  id: robot
+spec:
+  label: Robot
+  order: 2
+  sections:
+  - label: Health
+    withControlWidget: true
+    scope: robot
+    widgets:
+    - label: Vitals
+      type: vitals
+      layout:
+        chroma: true
+        grid: 4
+        height: 1
+      config:
+        dataSources:
+        - id: cpuLoadPercentage
+          label: CPU usage
+          type: gauge
+          unit: '%'
+        - id: diskUsagePercentage
+          label: Disk usage
+          type: gauge
+          unit: '%'
+        - id: networkOroRate
+          label: Agent network rate
+          type: gauge
+          unit: kbps
+    - label: Actions
+      type: actionsWidget
+      config: {}
+      layout:
+        chroma: true
+        grid: 4
+        height: 1
+    - label: Key Value pairs
+      type: keyValues
+      layout:
+        chroma: true
+        grid: 4
+        height: 1
+    - label: Diagnostics
+      type: diagnostics
+      layout:
+        chroma: true
+        height: 1
+---
+apiVersion: v0.1
+kind: DashboardDefinition
+metadata:
+  id: navigation
+spec:
+  label: Navigation
+  order: 4
+  sections:
+  - label: Robot Navigation
+    withControlWidget: true
+    scope: navigation
+    widgets:
+    - label: Navigation
+      type: navigation
+      layout:
+        grid: 12
+        height: 2
