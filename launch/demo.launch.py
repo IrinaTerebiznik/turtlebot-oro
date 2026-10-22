@@ -1,4 +1,4 @@
-# Fake TurtleBot3 Burger in RViz, driven by clicking goals ("2D Goal Pose").
+# Fake TurtleBot3 Burger on the maps/map.yaml floor plan, driven by clicking goals ("2D Goal Pose").
 # Same nodes as turtlebot3_fake_node.launch.py, plus our waypoint follower
 # and our own RViz config.
 
@@ -28,6 +28,21 @@ def generate_launch_description():
             package='robot_state_publisher',
             executable='robot_state_publisher',
             arguments=[urdf]),
+        Node(
+            package='nav2_map_server',
+            executable='map_server',
+            parameters=[{'yaml_filename': os.path.join(ROOT, 'maps', 'map.yaml')}]),
+        Node(
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
+            name='lifecycle_manager_map',
+            parameters=[{'autostart': True, 'node_names': ['map_server']}]),
+        # Robot starts on GO (bottom-right square), facing Mediterranean Avenue.
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            arguments=['--x', '9.0', '--y', '0.73', '--yaw', '3.14159',
+                       '--frame-id', 'map', '--child-frame-id', 'odom']),
         ExecuteProcess(
             cmd=['python3', os.path.join(ROOT, 'scripts', 'waypoint_follower.py')],
             output='screen'),

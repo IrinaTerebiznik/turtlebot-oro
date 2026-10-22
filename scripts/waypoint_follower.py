@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 # Drives the robot to the last goal clicked in RViz ("2D Goal Pose" -> /goal_pose).
 # Turn to face the goal, drive to it, then turn to the goal heading.
-# Stand-in for Nav2 while we run the fake robot (no map, no laser).
+# Stand-in for Nav2 while we run the fake robot (no laser, so no Nav2).
 
 import math
 
 import rclpy
+import tf2_geometry_msgs  # noqa: F401  registers PoseStamped with tf2
 from geometry_msgs.msg import PoseStamped, Twist
 from nav_msgs.msg import Odometry
+from rclpy.duration import Duration
 from rclpy.node import Node
+from rclpy.time import Time
+from tf2_ros import Buffer, TransformException, TransformListener
 
 MAX_LINEAR = 0.22    # Burger top speed, m/s
 MAX_ANGULAR = 1.5    # rad/s (Burger max is 2.84)
@@ -34,14 +38,20 @@ class WaypointFollower(Node):
         super().__init__('waypoint_follower')
         self.goal = None
         self.pose = None
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
         self.create_subscription(PoseStamped, '/goal_pose', self.on_goal, 10)
         self.create_subscription(Odometry, '/odom', self.on_odom, 10)
         self.create_timer(0.05, self.step)
 
     def on_goal(self, msg):
-        if msg.header.frame_id != 'odom':
-            self.get_logger().warn(f'Goal in frame "{msg.header.frame_id}", expected "odom"; ignoring')
+        # Goals clicked on the map arrive in "map"; we steer in "odom".
+        msg.header.stamp = Time().to_msg()   # latest transform
+        try:
+            msg = self.tf_buffer.transform(msg, 'odom', timeout=Duration(seconds=0.5))
+        except TransformException as e:
+            self.get_logger().warn(f'Cannot use goal in frame "{msg.header.frame_id}": {e}')
             return
         p = msg.pose.position
         self.goal = (p.x, p.y, yaw_of(msg.pose.orientation))

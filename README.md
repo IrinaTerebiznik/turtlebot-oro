@@ -26,5 +26,6 @@ docker compose logs -f agent-logs      # InOrbit agent
 - `docker-compose.yml`: robot container + InOrbit agent (`agent` profile)
 - `launch/demo.launch.py`: fake robot, robot model, waypoint follower, RViz
 - `scripts/waypoint_follower.py`: drives to the last goal on `/goal_pose` (stand-in for Nav2)
-- `config/turtlebot.rviz`: TurtleBot3 RViz view, goal tool publishing on `/goal_pose`
+- `config/turtlebot.rviz`: TurtleBot3 RViz view on the map, goal tool publishing on `/goal_pose`
+- `maps/map.yaml` + `maps/map.png`: sim floor plan (Monopoly board, 5 mm/px ≈ 9.7 m). The robot starts on GO.
 - `local/agent.env.sh`: agent config with the robot key (gitignored)
