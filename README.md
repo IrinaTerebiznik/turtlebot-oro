@@ -1,17 +1,19 @@
-## First time only (and after changing the Dockerfile)
-
-```bash
-docker build -t turtlebot-oro .
-```
-
-## After that
+## Run
 
 ```bash
 ./start.sh
 ```
 
-Opens RViz with a fake TurtleBot3 Burger and leaves you with a shell in the container.
-Launch logs go to `/tmp/launch.log` inside the container.
+- Builds the image if needed, starts the fake TurtleBot3 Burger + RViz.
+- Starts the InOrbit agent too, if `local/agent.env.sh` exists (copy `local/agent.env.sh.example`).
+- Drops you into a ROS shell in the robot container. **Exiting the shell stops everything.**
+
+Logs, from another terminal:
+
+```bash
+docker compose logs -f turtlebot-sim   # robot + RViz
+docker compose logs -f agent-logs      # InOrbit agent
+```
 
 ## Drive it
 
@@ -20,6 +22,9 @@ Launch logs go to `/tmp/launch.log` inside the container.
 
 ## Files
 
+- `start.sh`: the only entrypoint
+- `docker-compose.yml`: robot container + InOrbit agent (`agent` profile)
 - `launch/demo.launch.py`: fake robot, robot model, waypoint follower, RViz
 - `scripts/waypoint_follower.py`: drives to the last goal on `/goal_pose` (stand-in for Nav2)
 - `config/turtlebot.rviz`: TurtleBot3 RViz view, goal tool publishing on `/goal_pose`
+- `local/agent.env.sh`: agent config with the robot key (gitignored)

@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
+# Starts the fake TurtleBot (+ RViz), and the InOrbit agent if local/agent.env.sh exists.
+# Drops you into a ROS shell in the robot container. Exiting the shell stops everything.
+set -e
 cd "$(dirname "$0")"
 xhost +local:docker > /dev/null
 
-docker run -it --rm \
-  --network host \
-  -e DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  --device /dev/dri \
-  -v "$PWD":/turtlebot-oro \
-  turtlebot-oro bash -c "ros2 launch /turtlebot-oro/launch/demo.launch.py > /tmp/launch.log 2>&1 & exec bash"
+if [ -f local/agent.env.sh ]; then
+  export COMPOSE_PROFILES=agent
+else
+  echo "No local/agent.env.sh: starting without the InOrbit agent."
+  export COMPOSE_PROFILES=
+fi
+
+trap 'docker compose down' EXIT
+docker compose up -d --build
+docker compose exec turtlebot-sim bash
