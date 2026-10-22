@@ -21,8 +21,9 @@ services:
     # GAZEBO=true (start.sh -g) runs the Gazebo robot instead of the fake one
     # MAP=true (start.sh -map) serves the Monopoly map
     # SLAM=true (start.sh -slam) builds the map live
+    # REAL=true (start.sh -r) drives a real TurtleBot3 on the same network instead
     command: ["ros2", "launch", "/turtlebot-oro/launch/demo.launch.py",
-              "gazebo:=${GAZEBO:-false}", "map:=${MAP:-false}", "slam:=${SLAM:-false}"]
+              "gazebo:=${GAZEBO:-false}", "map:=${MAP:-false}", "slam:=${SLAM:-false}", "real:=${REAL:-false}"]
 
   # ROS2 InOrbit agent. Needs agent/agent.env.sh (copy agent/agent.env.sh.example).
   # start.sh enables the "agent" profile only when that file exists.
@@ -41,6 +42,9 @@ services:
     volumes:
       - ./local:/root/.inorbit/local/
       - ./agent/agent.env.sh:/root/.inorbit/local/agent.env.sh
+      # Scripts behind ORO's RunScript actions, and the repo they call into
+      - ./agent/user_scripts:/root/.inorbit/local/user_scripts
+      - .:/turtlebot-oro:ro
 
   # Tail agent logs from a separate container: docker compose logs -f agent-logs
   agent-logs:

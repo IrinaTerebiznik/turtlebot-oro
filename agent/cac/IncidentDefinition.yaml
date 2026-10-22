@@ -1,0 +1,36 @@
+# Incidents: each matches the StatusDefinition with the same id.
+#   oro apply -f agent/cac/IncidentDefinition.yaml
+apiVersion: v0.1
+kind: IncidentDefinition
+metadata:
+  id: batteryVoltage
+spec:
+  label: Battery low
+  labelTemplate: '{{robotName}}: battery low'
+  warning:
+    severity: SEV 2
+  error:
+    severity: SEV 1
+    autoActions: [stop_robot]
+---
+apiVersion: v0.1
+kind: IncidentDefinition
+metadata:
+  id: stuck
+spec:
+  label: Stuck
+  labelTemplate: '{{robotName}} is stuck'
+  error:
+    severity: SEV 2
+    manualActions: [stop_robot]
+---
+apiVersion: v0.1
+kind: IncidentDefinition
+metadata:
+  id: imuTilt
+spec:
+  label: Lifted
+  labelTemplate: '{{robotName}} was lifted or tipped over'
+  error:
+    severity: SEV 1
+    autoActions: [stop_robot]

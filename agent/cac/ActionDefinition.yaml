@@ -1,0 +1,162 @@
+# Actions. RunScript runs agent/user_scripts/<filename> in the agent container.
+#   oro apply -f agent/cac/ActionDefinition.yaml
+apiVersion: v0.1
+kind: ActionDefinition
+metadata:
+  id: scan_area
+spec:
+  type: RunScript
+  label: Scan area
+  description: Explores on its own so SLAM maps the area (needs start.sh -g -slam)
+  group: Mapping
+  widgets: [navigation]
+  arguments:
+  - name: filename
+    type: string
+    value: scan_area.sh
+  - name: radius
+    type: string
+    input:
+      control: select
+      values:
+      - {label: Within 2 m, value: "2"}
+      - {label: Within 3 m, value: "3"}
+      - {label: Within 5 m, value: "5"}
+      - {label: No limit, value: "0"}
+  - name: duration
+    type: string
+    input:
+      control: select
+      values:
+      - {label: 1 minute, value: "60"}
+      - {label: 3 minutes, value: "180"}
+      - {label: 5 minutes, value: "300"}
+---
+# Missions are waypoint routes from config/missions.yaml
+apiVersion: v0.1
+kind: ActionDefinition
+metadata:
+  id: start_mission
+spec:
+  type: RunScript
+  label: Start mission
+  description: Drives a waypoint route from config/missions.yaml
+  group: Missions
+  widgets: [navigation]
+  arguments:
+  - name: filename
+    type: string
+    value: start_mission.sh
+  - name: mission
+    type: string
+    input:
+      control: select
+      values:
+      - {label: "Mission 1: Out and back", value: "1"}
+      - {label: "Mission 2: Loop around a pillar", value: "2"}
+      - {label: "Mission 3: Long lane", value: "3"}
+---
+apiVersion: v0.1
+kind: ActionDefinition
+metadata:
+  id: stop_mission
+spec:
+  type: RunScript
+  label: Stop mission
+  description: Drops the current waypoint route and stops the wheels
+  group: Missions
+  widgets: [navigation]
+  arguments:
+  - name: filename
+    type: string
+    value: stop_mission.sh
+---
+# id kept as stop_robot: the incidents run it
+apiVersion: v0.1
+kind: ActionDefinition
+metadata:
+  id: stop_robot
+spec:
+  type: RunScript
+  label: Emergency stop
+  description: Ends any scan or mission and stops the wheels
+  group: Navigation
+  widgets: [navigation]
+  arguments:
+  - name: filename
+    type: string
+    value: stop_robot.sh
+---
+apiVersion: v0.1
+kind: ActionDefinition
+metadata:
+  id: add_waypoint
+spec:
+  type: RunScript
+  label: Add waypoint
+  description: Saves where the robot is now as a waypoint
+  group: Waypoints
+  widgets: [navigation]
+  arguments:
+  - name: filename
+    type: string
+    value: waypoint.sh
+  - name: command
+    type: string
+    value: add
+---
+apiVersion: v0.1
+kind: ActionDefinition
+metadata:
+  id: remove_last_waypoint
+spec:
+  type: RunScript
+  label: Remove last waypoint
+  description: Drops the most recently added waypoint
+  group: Waypoints
+  widgets: [navigation]
+  arguments:
+  - name: filename
+    type: string
+    value: waypoint.sh
+  - name: command
+    type: string
+    value: remove_last
+---
+apiVersion: v0.1
+kind: ActionDefinition
+metadata:
+  id: erase_waypoints
+spec:
+  type: RunScript
+  label: Erase waypoint list
+  description: Deletes all saved waypoints
+  group: Waypoints
+  widgets: [navigation]
+  confirmation:
+    required: true
+  arguments:
+  - name: filename
+    type: string
+    value: waypoint.sh
+  - name: command
+    type: string
+    value: clear
+---
+apiVersion: v0.1
+kind: ActionDefinition
+metadata:
+  id: visit_waypoint
+spec:
+  type: RunScript
+  label: Visit waypoints
+  description: Drives all waypoints in order, starting from the next one
+  group: Waypoints
+  widgets: [navigation]
+  arguments:
+  - name: filename
+    type: string
+    value: waypoint.sh
+  - name: command
+    type: string
+    value: visit

@@ -1,0 +1,15 @@
+# TurtleBot3 Burger outline for ORO's Navigation map, instead of the default (oversized) ring.
+#   oro apply -f agent/cac/RobotFootprint.yaml
+# A circle: the Burger is roughly round (0.14 m wide, 0.18 m long), and in ORO the radius also
+# sizes the orientation arrow (a polygon footprint leaves the arrow at its large default).
+# "system" = every robot in this ORO; use a robot id instead to set it for one robot only.
+apiVersion: v0.1
+kind: RobotFootprint
+metadata:
+  id: system
+spec:
+  radius: 0.1
+
+
+next waypoint is not needed on robot state nor vitals.
+Does scan map saves the map as well and overlaps the old one? 

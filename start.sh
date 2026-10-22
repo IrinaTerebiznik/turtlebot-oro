@@ -4,11 +4,12 @@
 #   -g    Gazebo robot (simulated laser) instead of the fake one
 #   -map  serve the Monopoly map (maps/map.yaml)
 #   -k    keyboard teleop in its own tmux window ("teleop")
-#   -slam build the map live with slam_toolbox (needs -g, not with -map)
+#   -slam build the map live with slam_toolbox (needs -g or -r, not with -map)
+#   -r    real TurtleBot3 on the same network (it runs its own bringup) instead of a simulated one
 set -e
 cd "$(dirname "$0")"
 
-export GAZEBO=false MAP=false SLAM=false
+export GAZEBO=false MAP=false SLAM=false REAL=false
 KEYBOARD=false
 for arg in "$@"; do
   case $arg in
@@ -16,11 +17,15 @@ for arg in "$@"; do
     -map) MAP=true ;;
     -k) KEYBOARD=true ;;
     -slam) SLAM=true ;;
-    *) echo "Usage: $0 [-g] [-map] [-k] [-slam]"; exit 1 ;;
+    -r) REAL=true ;;
+    *) echo "Usage: $0 [-g | -r] [-map] [-k] [-slam]"; exit 1 ;;
   esac
 done
-if [ "$SLAM" = true ] && [ "$GAZEBO" != true ]; then
-  echo "-slam needs -g: the fake robot has no laser."; exit 1
+if [ "$GAZEBO" = true ] && [ "$REAL" = true ]; then
+  echo "-g and -r: pick one robot."; exit 1
+fi
+if [ "$SLAM" = true ] && [ "$GAZEBO" != true ] && [ "$REAL" != true ]; then
+  echo "-slam needs -g or -r: the fake robot has no laser."; exit 1
 fi
 if [ "$SLAM" = true ] && [ "$MAP" = true ]; then
   echo "-slam and -map both publish /map: pick one."; exit 1

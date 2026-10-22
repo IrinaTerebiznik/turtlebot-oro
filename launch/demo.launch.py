@@ -3,14 +3,16 @@
 # and our own RViz config.
 # gazebo:=true swaps the fake robot for the Gazebo one (turtlebot3_world, with a simulated laser).
 # map:=true serves maps/map.yaml and places the robot on GO; otherwise map = odom, no map.
-# slam:=true builds the map live with slam_toolbox (needs gazebo:=true for the laser, not with map:=true).
+# slam:=true builds the map live with slam_toolbox (needs a laser: gazebo or real; not with map:=true).
+# real:=true drives a real TurtleBot3 over the network: it runs its own bringup (motors, laser, IMU,
+# robot_state_publisher), so no fake or Gazebo robot here.
 
 import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
@@ -28,6 +30,11 @@ def generate_launch_description():
         get_package_share_directory('turtlebot3_gazebo'), 'launch', 'turtlebot3_world.launch.py')
     # Gazebo runs its own clock: everything else follows it when it's on.
     gazebo = LaunchConfiguration('gazebo')
+    real = LaunchConfiguration('real')
+    # Gazebo and the real robot (ROS 2 Jazzy) take TwistStamped on /cmd_vel; the fake node, Twist
+    stamped = PythonExpression(
+        ["'true' if '", gazebo, "' == 'true' or '", real, "' == 'true' else 'false'"])
+    fake = PythonExpression(["'", gazebo, "' != 'true' and '", real, "' != 'true'"])
     use_map = LaunchConfiguration('map')
     slam = LaunchConfiguration('slam')
     slam_launch = os.path.join(
@@ -37,16 +44,17 @@ def generate_launch_description():
         DeclareLaunchArgument('gazebo', default_value='false'),
         DeclareLaunchArgument('map', default_value='false'),
         DeclareLaunchArgument('slam', default_value='false'),
+        DeclareLaunchArgument('real', default_value='false'),
         Node(
             package='turtlebot3_fake_node',
             executable='turtlebot3_fake_node',
             parameters=[fake_node_params],
-            condition=UnlessCondition(gazebo)),
+            condition=IfCondition(fake)),
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
             arguments=[urdf],
-            condition=UnlessCondition(gazebo)),
+            condition=IfCondition(fake)),
         # Gazebo + robot + its own robot_state_publisher
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(gazebo_world),
@@ -83,9 +91,19 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(slam_launch),
             launch_arguments={'use_sim_time': gazebo}.items(),
             condition=IfCondition(slam)),
+        # Waypoint list for ORO's Waypoints actions (local/waypoints.yaml)
+        ExecuteProcess(
+            cmd=['python3', os.path.join(ROOT, 'scripts', 'waypoint_manager.py'),
+                 '--ros-args', '-p', ['use_sim_time:=', gazebo]],
+            output='screen'),
+        # Robot data -> ORO key-values (agent/cac/DataSourceDefinition.yaml)
+        ExecuteProcess(
+            cmd=['python3', os.path.join(ROOT, 'scripts', 'oro_kv_bridge.py'),
+                 '--ros-args', '-p', ['stamped:=', stamped]],
+            output='screen'),
         ExecuteProcess(
             cmd=['python3', os.path.join(ROOT, 'scripts', 'waypoint_follower.py'),
-                 '--ros-args', '-p', ['use_sim_time:=', gazebo], '-p', ['stamped:=', gazebo]],
+                 '--ros-args', '-p', ['use_sim_time:=', gazebo], '-p', ['stamped:=', stamped]],
             output='screen'),
         Node(
             package='rviz2',

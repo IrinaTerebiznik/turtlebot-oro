@@ -1,0 +1,61 @@
+# Statuses: each matches the DataSourceDefinition with the same id.
+# Rules are checked in order and stop at the first match: strictest first.
+# No sustained rules: ORO ingest currently fails on them (formatDuration import).
+#   oro apply -f agent/cac/StatusDefinition.yaml
+#
+# TurtleBot3 3S LiPo: 12.6 V full, ~11.1 V nominal. OpenCR beeps around 11 V.
+apiVersion: v0.1
+kind: StatusDefinition
+metadata:
+  id: batteryVoltage
+spec:
+  rules:
+  - function: BELOW
+    params: [11.0]
+    status: ERROR
+  - function: BELOW
+    params: [11.4]
+    status: WARNING
+---
+# Explore turns away at 0.5 m, so warn only closer than that
+apiVersion: v0.1
+kind: StatusDefinition
+metadata:
+  id: obstacleDistance
+spec:
+  rules:
+  - function: BELOW
+    params: [0.15]
+    status: ERROR
+  - function: BELOW
+    params: [0.3]
+    status: WARNING
+---
+# idle / driving / mapping are all fine: shown, never raised
+apiVersion: v0.1
+kind: StatusDefinition
+metadata:
+  id: mode
+spec:
+  rules: []
+---
+apiVersion: v0.1
+kind: StatusDefinition
+metadata:
+  id: stuck
+spec:
+  rules:
+  - function: EQUALS
+    params: ["true"]
+    status: ERROR
+---
+# Picked up or tipped over
+apiVersion: v0.1
+kind: StatusDefinition
+metadata:
+  id: imuTilt
+spec:
+  rules:
+  - function: ABOVE
+    params: [25]
+    status: ERROR

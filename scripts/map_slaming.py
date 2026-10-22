@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 # Drives the robot around SLAMing to create a map
-# Optional: stay within a radius (m) of the start point, e.g.
-#   python3 map_slaming.py --ros-args -p radius:=3.0
+# Optional: stay within a radius (m) of the start point, stop after a duration (s), e.g.
+#   python3 map_slaming.py --ros-args -p radius:=3.0 -p duration:=180
 
 
 import rclpy
+from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import TwistStamped
 from nav_msgs.msg import Odometry
 import math
+import time
 
 # Look at a fan of beams, not just beam 0: one beam is thinner than the robot.
-# 20° each side of straight ahead covers its width. 1 index = 1°.
+# 20° each side of straight ahead covers its width.
+# Angles are turned into indexes with the scan's own step (1° on the sim, about 1° on real
+# TurtleBot lidars); index 0 = straight ahead on TurtleBot lidars (angle_min = 0).
 FRONT_HALF_ANGLE = 20
 SIDE_END_ANGLE = 90      # sides = from the edge of the front fan to 90° (left) / 270° (right)
 STOP_DISTANCE = 0.5      # m; closer than this ahead = turn
@@ -46,13 +50,21 @@ class MapSlammer(Node):
         # +1 = turning left, -1 = right, None = driving forward
         self.turn_direction = None
         # 0 = no limit. Measured in odom from where the robot was when this node started.
-        self.radius = self.declare_parameter('radius', 0.0).value
+        self.radius = self.number_param('radius')
         self.start = None
+        # 0 = run until stopped
+        self.duration = self.number_param('duration')
+        self.started_at = time.monotonic()
         self.pose = None
         self.returning = False
         self.create_subscription(LaserScan, '/scan', self.on_scan, 10)
         self.create_subscription(Odometry, '/odom', self.on_odom, 10)
         self.cmd_pub = self.create_publisher(TwistStamped, '/cmd_vel', 10)
+
+    def number_param(self, name):
+        # Accept radius:=2 as well as radius:=2.0 (ROS types them differently)
+        any_type = ParameterDescriptor(dynamic_typing=True)
+        return float(self.declare_parameter(name, 0.0, any_type).value)
 
     def on_odom(self, msg):
         p = msg.pose.pose.position
@@ -79,12 +91,18 @@ class MapSlammer(Node):
         return 1 if error > 0 else -1
 
     def on_scan(self, msg):
+        if self.duration and time.monotonic() - self.started_at > self.duration:
+            self.get_logger().info(f'Done: explored for {self.duration:.0f} s')
+            raise SystemExit
         ranges = list(msg.ranges)
-        # Front wraps around the list: left = start (0..20), right = end (340..359)
-        front = ranges[:FRONT_HALF_ANGLE + 1] + ranges[-FRONT_HALF_ANGLE:]
+        # Number of beams that cover a given angle
+        fan = round(math.radians(FRONT_HALF_ANGLE) / msg.angle_increment)
+        side = round(math.radians(SIDE_END_ANGLE) / msg.angle_increment)
+        # Front wraps around the list: left = start (0..20°), right = end (340..359°)
+        front = ranges[:fan + 1] + ranges[-fan:]
         # Left grows from the front fan up to 90°, right from 270° up to the front fan
-        left = ranges[FRONT_HALF_ANGLE + 1:SIDE_END_ANGLE + 1]
-        right = ranges[-SIDE_END_ANGLE:-FRONT_HALF_ANGLE]
+        left = ranges[fan + 1:side + 1]
+        right = ranges[-side:-fan]
 
         min_distance = closest(front)
         if min_distance >= STOP_DISTANCE:
@@ -117,7 +135,7 @@ def main():
     node = MapSlammer()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         pass
     finally:
         # Don't leave the robot rolling on its last command

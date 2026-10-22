@@ -1,0 +1,116 @@
+# TurtleBot data in ORO. Values come from scripts/oro_kv_bridge.py as key-values.
+#   oro apply -f agent/cac/DataSourceDefinition.yaml
+# Real robot only: batteryVoltage, sensorState (the Gazebo robot has no battery or OpenCR).
+apiVersion: v0.1
+kind: DataSourceDefinition
+metadata:
+  id: batteryVoltage
+spec:
+  label: Battery voltage
+  unit: V
+  precision: 2
+  source:
+    keyValue:
+      key: battery_voltage
+  timeline: {}
+---
+# JSON: bumper, cliff, button, torque (motors on)
+apiVersion: v0.1
+kind: DataSourceDefinition
+metadata:
+  id: sensorState
+spec:
+  label: Sensor state
+  type: json
+  source:
+    keyValue:
+      key: sensor_state
+---
+# Angle from upright (deg), from the IMU orientation
+apiVersion: v0.1
+kind: DataSourceDefinition
+metadata:
+  id: imuTilt
+spec:
+  label: Tilt
+  unit: °
+  precision: 1
+  source:
+    keyValue:
+      key: imu_tilt
+  timeline: {}
+---
+apiVersion: v0.1
+kind: DataSourceDefinition
+metadata:
+  id: speed
+spec:
+  label: Speed
+  unit: m/s
+  precision: 2
+  source:
+    keyValue:
+      key: speed
+  timeline: {}
+---
+# Closest thing within 30° of straight ahead (m); laser max range when nothing is in sight.
+# Backs the obstacle status.
+apiVersion: v0.1
+kind: DataSourceDefinition
+metadata:
+  id: obstacleDistance
+spec:
+  label: Obstacle ahead
+  unit: m
+  precision: 2
+  source:
+    keyValue:
+      key: obstacle_distance
+  timeline: {}
+---
+# idle / driving / mapping. Backs the mode status.
+apiVersion: v0.1
+kind: DataSourceDefinition
+metadata:
+  id: mode
+spec:
+  label: Mode
+  source:
+    keyValue:
+      key: mode
+  timeline:
+    fieldType: string
+---
+# true when the robot is told to move but hasn't gone 10 cm in 20 s. Backs the stuck incident.
+apiVersion: v0.1
+kind: DataSourceDefinition
+metadata:
+  id: stuck
+spec:
+  label: Stuck
+  source:
+    keyValue:
+      key: stuck
+---
+# Saved waypoints, JSON: [{n, x, y}] in the map frame (scripts/waypoint_manager.py)
+apiVersion: v0.1
+kind: DataSourceDefinition
+metadata:
+  id: waypointList
+spec:
+  label: Waypoints
+  type: json
+  source:
+    keyValue:
+      key: waypoints
+---
+# "<n>: (x, y)" of the waypoint Visit waypoint goes to, or "none"
+apiVersion: v0.1
+kind: DataSourceDefinition
+metadata:
+  id: nextWaypoint
+spec:
+  label: Next waypoint
+  source:
+    keyValue:
+      key: next_waypoint
