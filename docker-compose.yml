@@ -1,0 +1,82 @@
+services:
+  turtlebot-sim:
+    build: .
+    image: ghcr.io/openrobops/turtlebot-sim:latest
+    container_name: turtlebot_sim
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}
+      - XDG_RUNTIME_DIR=/tmp/runtime
+      - QT_X11_NO_MITSHM=1
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+    volumes:
+      # GPU devices (required for hardware-accelerated rendering)
+      - /dev/dri:/dev/dri
+      # X11 socket
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # X11 auth
+      - ${XAUTHORITY:-${HOME}/.Xauthority}:/root/.Xauthority:ro
+      # Wayland socket (mount host socket into container runtime dir)
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}:/tmp/runtime/${WAYLAND_DISPLAY:-wayland-0}:ro
+      # Map and config overrides from host
+      - ./maps:/ros2_ws/maps:ro
+      - ./worlds:/ros2_ws/worlds:ro
+    network_mode: host
+    ipc: host
+    stdin_open: true
+    tty: true
+    # Allow access to GPU render nodes (226 = /dev/dri major number)
+    device_cgroup_rules:
+      - 'c 226:* rmw'
+    command: ["--with-rviz"]
+
+  # Run rviz in a separate container (activate with: docker compose --profile rviz-separate up rviz)
+  rviz:
+    image: ghcr.io/openrobops/flatland-nav2:latest
+    container_name: turtlebot_rviz
+    profiles: ["rviz-separate"]
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}
+      - XDG_RUNTIME_DIR=/tmp/runtime
+      - QT_X11_NO_MITSHM=1
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
+    volumes:
+      - /dev/dri:/dev/dri
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ${XAUTHORITY:-${HOME}/.Xauthority}:/root/.Xauthority:ro
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}:/tmp/runtime/${WAYLAND_DISPLAY:-wayland-0}:ro
+      - ./config:/ros2_ws/src/flatland_nav2_bringup/config:ro
+    network_mode: host
+    ipc: host
+    device_cgroup_rules:
+      - 'c 226:* rmw'
+    command: ["--rviz-only"]
+
+  # ROS2 InOrbit agent
+  # Notes:
+  #  - It requires configuration in local/agent.env.sh
+  #  - It requires adding a couple of module_states in the database (to be documented)
+  #  - Part of the "agent" profile (enabled by default via .env). To skip, run:
+  #      COMPOSE_PROFILES= docker compose up
+  agent:
+    image: inorbitai/agent:ros-jazzy-4.36.0
+    container_name: agent
+    profiles: ["agent"]
+    hostname: flatland
+    restart: always
+    network_mode: host
+    ipc: host
+    volumes:
+      - ./local:/root/.inorbit/local/
+      - ./local/agent.env.sh:/root/.inorbit/local/agent.env.sh
+
+  # Tail agent logs from a different container; it's lightweight and it helps debugging in a single docker-compose terminal
+  agent-logs:
+    image: busybox
+    container_name: agent_logs
+    profiles: ["agent"]
+    depends_on: [agent]
+    volumes:
+      - ./local:/logs:ro
+    command: ["sh", "-c", "until [ -f /logs/inorbit_agent.log ]; do sleep 1; done; tail -F /logs/inorbit_agent.log"]
