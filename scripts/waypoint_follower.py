@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # Drives the robot to the last goal clicked in RViz ("2D Goal Pose" -> /goal_pose),
 # or through a list of waypoints (nav_msgs/Path on /waypoints, e.g. a mission).
-# Turn to face each goal, drive to it; at the last one, turn to its heading.
+# Turn to face each goal, drive to it; at the last one, turn to its heading. A waypoint at the
+# same spot as the one before is a turn in place to its heading (a mission's spin).
 # With a laser (/scan): something in the way -> turn toward the open side, drive past it,
 # re-aim. Not a planner: no map, no memory of obstacles. Stand-in for Nav2.
 
@@ -48,7 +49,7 @@ def clamp(value, limit):
 class WaypointFollower(Node):
     def __init__(self):
         super().__init__('waypoint_follower')
-        self.goals = []   # (x, y, yaw) in odom, next one first
+        self.goals = []   # (x, y, yaw, turn) in odom, next one first; turn: turn to yaw in place
         self.pose = None
         # Closest obstacle ahead / left / right (m); inf = nothing seen or no laser
         self.front = self.left = self.right = math.inf
@@ -80,7 +81,7 @@ class WaypointFollower(Node):
     def on_goal(self, msg):
         goal = self.to_odom(msg)
         if goal is not None:
-            self.goals = [goal]
+            self.goals = [goal + (False,)]
             self.avoid = None
             self.get_logger().info(f'New goal: x={goal[0]:.2f} y={goal[1]:.2f}')
 
@@ -92,7 +93,8 @@ class WaypointFollower(Node):
             goal = self.to_odom(pose)
             if goal is None:
                 return
-            goals.append(goal)
+            turn = bool(goals) and math.hypot(goal[0] - goals[-1][0], goal[1] - goals[-1][1]) < 1e-3
+            goals.append(goal + (turn,))
         self.goals = goals
         self.avoid = None
         self.get_logger().info(f'New path: {len(goals)} waypoints')
@@ -140,7 +142,7 @@ class WaypointFollower(Node):
         if not self.goals or self.pose is None:
             return
         x, y, yaw = self.pose
-        gx, gy, gyaw = self.goals[0]
+        gx, gy, gyaw, turn = self.goals[0]
         last = len(self.goals) == 1
         dist = math.hypot(gx - x, gy - y)
         cmd = Twist()
@@ -161,7 +163,7 @@ class WaypointFollower(Node):
                     # Slow down as things get close ahead
                     cmd.linear.x = min(MAX_LINEAR, dist,
                                        max(AVOID_SPEED / 2, self.front - BLOCKED))
-        elif not last:
+        elif not last and not turn:
             # Waypoint on the way: no need to turn to its heading
             self.goals.pop(0)
             self.get_logger().info(f'Waypoint reached, {len(self.goals)} to go')
@@ -169,6 +171,9 @@ class WaypointFollower(Node):
             yaw_error = wrap(gyaw - yaw)
             if abs(yaw_error) > YAW_TOLERANCE:
                 cmd.angular.z = clamp(2.0 * yaw_error, MAX_ANGULAR)
+            elif not last:
+                # one step of a turn in place: a quarter turn, so wrap() keeps the direction
+                self.goals.pop(0)
             else:
                 self.goals = []
                 self.get_logger().info('Goal reached')

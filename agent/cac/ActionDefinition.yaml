@@ -53,8 +53,8 @@ spec:
       control: select
       values:
       - {label: "Mission 1: Out and back", value: "1"}
-      - {label: "Mission 2: Loop around a pillar", value: "2"}
-      - {label: "Mission 3: Long lane", value: "3"}
+      - {label: "Mission 2: Spin at a pillar", value: "2"}
+      - {label: "Mission 3: Hexagon perimeter", value: "3"}
 ---
 apiVersion: v0.1
 kind: ActionDefinition
