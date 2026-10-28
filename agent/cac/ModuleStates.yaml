@@ -1,0 +1,72 @@
+# Agent settings for the TurtleBot3: which ROS topics the InOrbit agent uses.
+# ORO applies ModuleStates to every robot: apply this only on an ORO that runs TurtleBots.
+#   oro apply -f agent/cac/ModuleStates.yaml
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosMapAgentlet
+spec:
+  state:
+    minRunlevel: 5
+---
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosPoseAgentlet
+spec:
+  state:
+    minRunlevel: 5
+---
+# Map, laser, goals and initial pose, and Nav2's planned path (only with SLAM: start.sh -g -slam),
+# so ORO's map shows the route the robot will actually drive.
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosLocalizationAgentlet
+spec:
+  state:
+    minRunlevel: 5
+    map_topic: "map"
+    laser_topic: "scan"
+    nav_goal_topic: "goal_pose"
+    path_topics: {"0": {"topic": "plan"}}
+    set_pose_topic: "initialpose"
+---
+# ORO teleop. The agent picks Twist or TwistStamped from what's already on the topic.
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosTeleopAgentlet
+spec:
+  state:
+    publish_zero_vel: true
+    cmd_vel_topic: "cmd_vel"
+---
+# Forwards /diagnostics_agg to ORO (Diagnostics widget)
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosDiagnosticsAgentlet
+spec:
+  state:
+    minRunlevel: 5
+---
+# USB webcam on the real robot (usb_cam on the Pi). The sims have no camera: the view stays empty.
+apiVersion: v0.1
+kind: ModuleState
+metadata:
+  id: RosImageAgentlet
+spec:
+  state:
+    cameraViewOn: true
+    camera_topics:
+      0: "image_raw/compressed"
+    cameras_config:
+      0:
+        topic: "image_raw/compressed"
+        output_encoding: 'rgb8'  # bgr8 swaps red/blue with usb_cam's mjpeg2rgb stream
+        quality: 50
+        rate: 2
+        img_width: 320
+        img_height: 240
+        is_on: true

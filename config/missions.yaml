@@ -1,0 +1,58 @@
+# Missions for the "Start mission" action: waypoints [x, y] (m) driven in order,
+# optional yaw (rad) on the last one. {spin: N} turns the robot N full turns in place at the
+# waypoint before it. Frame "map".
+# Tuned for Gazebo's turtlebot3_world (start.sh -g [-slam]): map = where the robot spawned,
+# world (-2.0, -0.5) facing east, so map = world + (2.0, 0.5). From the world's model.sdf:
+# - 9 pillars, radius 0.15 m, at map x 0.9 / 2.0 / 3.1, y -0.6 / 0.5 / 1.6;
+# - the hexagon wall, centred on map (2.0, 0.5) with corners east and west: inner corners 2.93 m
+#   from the centre, inner faces 2.54 m;
+# - hexagonal blocks filling every corner but the west one, tips into the arena at map
+#   (4.33, 0.5), (3.4, 2.5), (3.4, -1.5), (0.6, 2.5), (0.6, -1.5).
+# This model matches every occupied cell of a slam_toolbox map of the world.
+# Redo these for a real floor.
+frame: map
+missions:
+  "1":
+    label: Out and back
+    waypoints:
+      - [1.45, -0.05]
+      - [0.0, 0.0, 0.0]
+  "2":
+    label: Spin at a pillar
+    # 0.45 m west of the west-middle pillar (map 0.9, 0.5): 0.3 m from its surface, room to turn
+    waypoints:
+      - [0.45, 0.5]
+      - {spin: 3}
+      - [0.0, 0.0, 0.0]
+  "3":
+    label: Hexagon perimeter
+    # The ring between the pillars and the wall, counter-clockwise from the west corner: 24 points,
+    # every 15 deg around the centre, each where it is farthest from any obstacle. Every leg stays
+    # at least 0.40 m clear of pillars, wall and corner blocks (the robot is 0.105 m in radius).
+    waypoints:
+      - [-0.03, 0.50]
+      - [0.18, 0.01]
+      - [0.24, -0.52]
+      - [0.47, -1.03]
+      - [1.00, -1.22]
+      - [1.51, -1.32]
+      - [2.00, -1.40]
+      - [2.49, -1.32]
+      - [3.00, -1.22]
+      - [3.53, -1.03]
+      - [3.76, -0.52]
+      - [3.80, 0.02]
+      - [3.79, 0.50]
+      - [3.80, 0.98]
+      - [3.76, 1.52]
+      - [3.53, 2.03]
+      - [2.99, 2.22]
+      - [2.49, 2.32]
+      - [2.00, 2.40]
+      - [1.51, 2.32]
+      - [1.01, 2.22]
+      - [0.47, 2.03]
+      - [0.24, 1.51]
+      - [0.18, 0.99]
+      - [-0.03, 0.50]
+      - [0.0, 0.0, 0.0]

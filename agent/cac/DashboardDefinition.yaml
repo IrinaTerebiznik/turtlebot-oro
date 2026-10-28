@@ -1,0 +1,118 @@
+# TurtleBot3 dashboards in ORO.
+#   oro apply -f agent/cac/DashboardDefinition.yaml
+apiVersion: v0.1
+kind: DashboardDefinition
+metadata:
+  id: robot
+spec:
+  label: Robot
+  order: 2
+  sections:
+  - label: Health
+    withControlWidget: true
+    scope: robot
+    widgets:
+    - label: Robot state
+      type: vitals
+      layout:
+        chroma: true
+        grid: 4
+        height: 1
+      config:
+        dataSources:
+        - id: mode
+          label: Mode
+          type: text
+        - id: speed
+          label: Speed
+          type: text
+          unit: m/s
+        - id: obstacleDistance
+          label: Obstacle ahead
+          type: text
+          unit: m
+    - label: Vitals
+      type: vitals
+      layout:
+        chroma: true
+        grid: 4
+        height: 1
+      config:
+        dataSources:
+        - id: cpuLoadPercentage
+          label: CPU usage
+          type: gauge
+          unit: '%'
+        - id: diskUsagePercentage
+          label: Disk usage
+          type: gauge
+          unit: '%'
+    - label: Actions
+      type: actionsWidget
+      # Only our actions: leaves out ORO's built-ins ("Others"). They stay defined,
+      # since map clicks and the agent buttons use them.
+      config:
+        actionIds:
+        - stop_robot
+        - scan_area
+        - start_mission
+        - stop_mission
+        - add_waypoint
+        - remove_last_waypoint
+        - erase_waypoints
+        - visit_waypoint
+      layout:
+        chroma: true
+        grid: 4
+        height: 1
+    - label: Key Value pairs
+      type: keyValues
+      layout:
+        chroma: true
+        grid: 4
+        height: 1
+    - label: Diagnostics
+      type: diagnostics
+      layout:
+        chroma: true
+        height: 1
+---
+apiVersion: v0.1
+kind: DashboardDefinition
+metadata:
+  id: navigation
+spec:
+  label: Navigation
+  order: 4
+  sections:
+  - label: Robot Navigation
+    withControlWidget: true
+    scope: navigation
+    widgets:
+    - label: Navigation
+      type: navigation
+      layout:
+        grid: 12
+        height: 2
+    - label: Robot state
+      type: vitals
+      layout:
+        chroma: true
+        grid: 12
+        height: 1
+      config:
+        dataSources:
+        - id: mode
+          label: Mode
+          type: text
+        - id: speed
+          label: Speed
+          type: text
+          unit: m/s
+        - id: obstacleDistance
+          label: Obstacle ahead
+          type: text
+          unit: m
+        - id: nextWaypoint
+          label: Next waypoint
+          type: text

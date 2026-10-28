@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
       ros-jazzy-turtlebot3 \
       ros-jazzy-turtlebot3-msgs \
       ros-jazzy-turtlebot3-simulations \
+      tmux \
       && rm -rf /var/lib/apt/lists/*
 
 # Load ROS in every interactive shell (incl. `docker compose exec`)
