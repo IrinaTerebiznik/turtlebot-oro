@@ -3,7 +3,10 @@
 # and our own RViz config.
 # gazebo:=true swaps the fake robot for the Gazebo one (turtlebot3_world, with a simulated laser).
 # map:=true serves maps/map.yaml and places the robot on GO; otherwise map = odom, no map.
-# slam:=true builds the map live with slam_toolbox (needs a laser: gazebo or real; not with map:=true).
+# slam:=true builds the map live with slam_toolbox (needs a laser: gazebo or real; not with map:=true),
+# and drives with Nav2 (config/nav2.yaml): it plans around obstacles on that map. Routes on /waypoints
+# go through scripts/nav2_bridge.py, goals (/goal_pose) straight to Nav2. Without SLAM there is no
+# map for Nav2, so scripts/waypoint_follower.py drives instead (straight lines, dodging).
 # real:=true drives a real TurtleBot3 over the network: it runs its own bringup (motors, laser, IMU,
 # robot_state_publisher), so no fake or Gazebo robot here.
 
@@ -39,6 +42,9 @@ def generate_launch_description():
     slam = LaunchConfiguration('slam')
     slam_launch = os.path.join(
         get_package_share_directory('slam_toolbox'), 'launch', 'online_async_launch.py')
+    nav2_launch = os.path.join(
+        get_package_share_directory('nav2_bringup'), 'launch', 'navigation_launch.py')
+    no_slam = PythonExpression(["'", slam, "' != 'true'"])
 
     return LaunchDescription([
         DeclareLaunchArgument('gazebo', default_value='false'),
@@ -104,7 +110,19 @@ def generate_launch_description():
         ExecuteProcess(
             cmd=['python3', os.path.join(ROOT, 'scripts', 'waypoint_follower.py'),
                  '--ros-args', '-p', ['use_sim_time:=', gazebo], '-p', ['stamped:=', stamped]],
-            output='screen'),
+            output='screen',
+            condition=IfCondition(no_slam)),
+        # With SLAM: Nav2 on the live map, and the bridge that runs /waypoints routes through it
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(nav2_launch),
+            launch_arguments={'use_sim_time': gazebo, 'autostart': 'true',
+                              'params_file': os.path.join(ROOT, 'config', 'nav2.yaml')}.items(),
+            condition=IfCondition(slam)),
+        ExecuteProcess(
+            cmd=['python3', os.path.join(ROOT, 'scripts', 'nav2_bridge.py'),
+                 '--ros-args', '-p', ['use_sim_time:=', gazebo]],
+            output='screen',
+            condition=IfCondition(slam)),
         Node(
             package='rviz2',
             executable='rviz2',

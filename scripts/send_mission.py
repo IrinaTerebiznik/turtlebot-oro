@@ -26,9 +26,11 @@ def expand(waypoints):
             if not points:
                 sys.exit('A spin needs a waypoint before it')
             x, y, _ = points[-1]
-            # arrival heading: from the waypoint before (or the start, map origin) to this one
+            # arrival heading: from the waypoint before (or the start, map origin) to this one.
+            # The waypoint takes it too, so the turns add up to exactly N turns (nav2_bridge.py).
             px, py = points[-2][:2] if len(points) > 1 else (0.0, 0.0)
             yaw = math.atan2(y - py, x - px)
+            points[-1] = (x, y, yaw)
             for _ in range(4 * int(entry['spin'])):
                 yaw += math.pi / 2
                 points.append((x, y, yaw))

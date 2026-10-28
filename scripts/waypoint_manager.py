@@ -20,7 +20,7 @@ from tf2_ros import Buffer, TransformException, TransformListener
 STORE = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'local', 'waypoints.yaml')
 FRAME = 'map'
 ROBOT_FRAME = 'base_footprint'
-ARRIVED = 0.1          # m; this close to the waypoint = visited
+ARRIVED = 0.15         # m; this close to the waypoint = visited (Nav2's goal tolerance is 0.1 m)
 PUBLISH_PERIOD = 1.0   # s
 ARRIVAL_PERIOD = 0.1   # s; the robot drives through tour waypoints without stopping
 
