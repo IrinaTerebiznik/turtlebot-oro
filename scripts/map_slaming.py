@@ -7,10 +7,13 @@
 import rclpy
 from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from rclpy.signals import SignalHandlerOptions
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import TwistStamped
 from nav_msgs.msg import Odometry
 import math
+import signal
 import time
 
 # Look at a fan of beams, not just beam 0: one beam is thinner than the robot.
@@ -57,7 +60,9 @@ class MapSlammer(Node):
         self.started_at = time.monotonic()
         self.pose = None
         self.returning = False
-        self.create_subscription(LaserScan, '/scan', self.on_scan, 10)
+        # Sensor QoS (best effort): the real LDS-01 driver publishes best effort, a reliable
+        # subscription would never receive a scan
+        self.create_subscription(LaserScan, '/scan', self.on_scan, qos_profile_sensor_data)
         self.create_subscription(Odometry, '/odom', self.on_odom, 10)
         self.cmd_pub = self.create_publisher(TwistStamped, '/cmd_vel', 10)
 
@@ -131,10 +136,19 @@ class MapSlammer(Node):
 
 
 def main():
-    rclpy.init()
+    # No rclpy signal handler: with it, SIGINT (scan_area.sh's pkill -INT) shuts the context down
+    # first and the stop below fails with "publisher's context is invalid"
+    rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
+    # scan_area.sh starts us in the background, where SIGINT starts out ignored: install the
+    # handler explicitly so pkill -INT (and SIGTERM) still stop the robot
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+    signal.signal(signal.SIGTERM, signal.default_int_handler)
     node = MapSlammer()
     try:
-        rclpy.spin(node)
+        # Short waits instead of rclpy.spin(): a blocking wait (no scans arriving) would keep
+        # Python from ever running the signal handler
+        while rclpy.ok():
+            rclpy.spin_once(node, timeout_sec=0.2)
     except (KeyboardInterrupt, SystemExit):
         pass
     finally:
@@ -142,6 +156,8 @@ def main():
         stop = TwistStamped()
         stop.header.stamp = node.get_clock().now().to_msg()
         node.cmd_pub.publish(stop)
+        node.destroy_node()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':
