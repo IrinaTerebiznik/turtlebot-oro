@@ -58,6 +58,7 @@ python3 /turtlebot-oro/scripts/map_slaming.py
 
 - Drive with ORO teleop, keyboard teleop or RViz goals. The map grows in RViz (every ~5 s) and ORO (~1 min).
 - SLAM publishes `map → odom` itself, so the plain `map = odom` link is left out.
+- With SLAM on, Nav2 drives (goals, missions, waypoints) and plans around what's on the map.
 
 **Explore on its own** (instead of teleop), in the `turtlebot` window:
 
@@ -131,7 +132,8 @@ so long jobs start in the background. Logs: `local/scan_area.log`.
 - `start.sh`: the only entrypoint
 - `docker-compose.yml`: robot container + InOrbit agent (`agent` profile)
 - `launch/demo.launch.py`: fake or Gazebo robot (`gazebo:=`), map (`map:=`), waypoint follower, RViz
-- `scripts/waypoint_follower.py`: drives to the last goal on `/goal_pose` or a route on `/waypoints`; goes around obstacles it sees with the laser (stand-in for Nav2, no planner)
+- `scripts/waypoint_follower.py`: without `-slam`, drives to the last goal on `/goal_pose` or a route on `/waypoints`; goes around obstacles it sees with the laser (no planner)
+- `config/nav2.yaml` + `scripts/nav2_bridge.py`: with `-slam`, Nav2 drives instead and plans around obstacles on the live map; the bridge sends `/waypoints` routes through it
 - `scripts/map_slaming.py`: wanders using the laser, optionally within a radius / for a duration, so SLAM can map
 - `scripts/oro_kv_bridge.py`: robot topics → ORO key-values on `/inorbit/custom_data`
 - `scripts/send_mission.py` + `config/missions.yaml`: missions as waypoint routes on `/waypoints`

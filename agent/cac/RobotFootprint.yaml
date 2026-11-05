@@ -9,7 +9,3 @@ metadata:
   id: system
 spec:
   radius: 0.1
-
-
-next waypoint is not needed on robot state nor vitals.
-Does scan map saves the map as well and overlaps the old one? 
